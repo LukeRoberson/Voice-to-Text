@@ -18,6 +18,14 @@ Dependencies:
         - For command-line argument parsing
     - os, pathlib
         - For file and path operations
+    - sys
+        - For system-specific parameters and functions
+    - tempfile
+        - For creating temporary files
+    - requests
+        - For downloading video files from URLs
+    - urllib.parse
+        - For URL parsing
 
 Custom Modules:
     - video_processor
@@ -31,6 +39,9 @@ import os
 import sys
 from pathlib import Path
 from typing import Optional
+import tempfile
+import requests
+from urllib.parse import urlparse
 
 from video_processor import VideoProcessor
 from subtitle_generator import SubtitleGenerator
@@ -52,6 +63,10 @@ class VideoSubtitleApp:
     Methods:
         __init__:
             Initialize the VideoSubtitleApp
+        _is_url:
+            Check if the given path is a URL
+        _download_video:
+            Download video from URL to a temporary file
         _save_subtitle_file:
             Save subtitle content to file
         process:
@@ -98,6 +113,53 @@ class VideoSubtitleApp:
                 f"Invalid subtitle format: {subtitle_format}. "
                 f"Must be 'srt' or 'vtt'"
             )
+
+    def _is_url(
+        self,
+        path: str
+    ) -> bool:
+        """
+        Check if the given path is a URL.
+
+        Args:
+            path (str): Path or URL
+
+        Returns:
+            bool: True if path is a URL, False otherwise
+        """
+
+        parsed = urlparse(path)
+        return parsed.scheme in ('http', 'https')
+
+    def _download_video(
+        self,
+        url: str
+    ) -> str:
+        """
+        Download video from URL to a temporary file.
+
+        Args:
+            url (str): Video URL
+
+        Returns:
+            str: Path to the downloaded temporary file
+        """
+
+        print(f"⬇️  Downloading video from URL: {url}")
+        response = requests.get(url, stream=True)
+        response.raise_for_status()
+
+        suffix = os.path.splitext(urlparse(url).path)[-1] or ".mp4"
+        temp_file = tempfile.NamedTemporaryFile(
+            delete=False,
+            suffix=suffix
+        )
+        for chunk in response.iter_content(chunk_size=8192):
+            temp_file.write(chunk)
+        temp_file.close()
+
+        print(f"✓ Downloaded to temporary file: {temp_file.name}")
+        return temp_file.name
 
     def _save_subtitle_file(
         self,
@@ -175,11 +237,31 @@ class VideoSubtitleApp:
         print("=" * 60)
         print()
 
+        temp_video_path = None
         try:
-            # Step 1: Initialize and validate video processor
+            # Step 1: Handle URL input
+            if self._is_url(self.video_path):
+                temp_video_path = self._download_video(self.video_path)
+                video_path = temp_video_path
+
+                # Set output dir to local dir if not set
+                if not self.output_dir:
+                    self.output_dir = str(Path("."))
+
+                # Set filename if not set
+                if not self.output_filename:
+                    self.output_filename = (
+                        self.video_path.split("/")[-1].rsplit(".", 1)[0]
+                    )
+                    print(f"Using output filename: {self.output_filename}")
+
+            else:
+                video_path = self.video_path
+
+            # Step 2: Initialize and validate video processor
             print("📋 Step 1: Validating video file...")
             video_processor = VideoProcessor(
-                self.video_path,
+                video_path,
                 self.output_dir
             )
 
@@ -188,7 +270,7 @@ class VideoSubtitleApp:
                 return
             print()
 
-            # Step 2: Extract audio from video
+            # Step 3: Extract audio from video
             print("📋 Step 2: Extracting audio from video...")
             audio_path = video_processor.extract_audio(
                 output_format="wav",
@@ -196,7 +278,7 @@ class VideoSubtitleApp:
             )
             print()
 
-            # Step 3: Initialize subtitle generator with GPU support
+            # Step 4: Initialize subtitle generator with GPU support
             print("📋 Step 3: Initializing Whisper model...")
             subtitle_generator = SubtitleGenerator(
                 model_size=self.model_size,
@@ -205,7 +287,7 @@ class VideoSubtitleApp:
             )
             print()
 
-            # Step 4: Transcribe audio
+            # Step 45: Transcribe audio
             print("📋 Step 4: Transcribing audio...")
             segments = subtitle_generator.transcribe_audio(
                 audio_path,
@@ -215,7 +297,7 @@ class VideoSubtitleApp:
             )
             print()
 
-            # Step 5: Format and save subtitles
+            # Step 6: Format and save subtitles
             print("📋 Step 5: Generating subtitle file...")
 
             # Generate srt file
@@ -234,6 +316,11 @@ class VideoSubtitleApp:
             if os.path.exists(audio_path):
                 os.remove(audio_path)
                 print("🗑️  Removed temporary audio file")
+
+            # Clean up temporary video file if downloaded
+            if temp_video_path and os.path.exists(temp_video_path):
+                os.remove(temp_video_path)
+                print("🗑️  Removed temporary downloaded video file")
 
             print()
             print("=" * 60)
@@ -285,7 +372,10 @@ def main() -> None:
     parser.add_argument(
         'video_path',
         type=str,
-        help='Path to the input MP4 video file'
+        help=(
+            'Path to the input MP4 video file. '
+            'A local mp4 file path or a URL to an mp4 file is accepted.'
+        )
     )
 
     parser.add_argument(

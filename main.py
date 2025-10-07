@@ -62,6 +62,7 @@ class VideoSubtitleApp:
         self,
         video_path: str,
         output_dir: Optional[str] = None,
+        output_filename: Optional[str] = None,
         model_size: str = "base",
         subtitle_format: str = "srt"
     ) -> None:
@@ -69,11 +70,16 @@ class VideoSubtitleApp:
         Initialize the application with configuration parameters.
 
         Args:
-            video_path (str): Path to the MP4 video file
-            output_dir (str, optional): Directory for output files
+            video_path (str):
+                Path to the MP4 video file
+            output_dir (str, optional):
+                Directory for output files
+            output_filename (str, optional):
+                Output filename stem for subtitle file
             model_size (str): Whisper model size
                 ('tiny', 'base', 'small', 'medium', 'large-v2', 'large-v3')
-            subtitle_format (str): Subtitle format ('srt' or 'vtt')
+            subtitle_format (str):
+                Subtitle format ('srt' or 'vtt')
 
         Returns:
             None
@@ -82,6 +88,7 @@ class VideoSubtitleApp:
         # Config
         self.video_path = video_path
         self.output_dir = output_dir
+        self.output_filename = output_filename
         self.model_size = model_size
         self.subtitle_format = subtitle_format.lower()
 
@@ -106,9 +113,16 @@ class VideoSubtitleApp:
             str: Path to the saved subtitle file
         """
 
-        # Build the destination path
-        video_name = Path(self.video_path).stem
-        subtitle_filename = f"{video_name}.{self.subtitle_format}"
+        # Use custom output filename if provided
+        if self.output_filename:
+            subtitle_filename = (
+                self.output_filename + f".{self.subtitle_format}"
+            )
+
+        # Use video name as default
+        else:
+            video_name = Path(self.video_path).stem
+            subtitle_filename = f"{video_name}.{self.subtitle_format}"
 
         # Write to the given output directory
         if self.output_dir:
@@ -255,6 +269,7 @@ def main() -> None:
         epilog="""
             Examples:
             python main.py video.mp4
+            python main.py video.mp4 -o ./subtitles -n my_video
             python main.py video.mp4 -m medium -f vtt
             python main.py video.mp4 -o ./subtitles -m large-v3
 
@@ -281,6 +296,16 @@ def main() -> None:
     )
 
     parser.add_argument(
+        '-n', '--output-name',
+        type=str,
+        default=None,
+        help=(
+            'Output filename stem for subtitle file, without extension '
+            '(default: same as video with srt or vtt extension)'
+        )
+    )
+
+    parser.add_argument(
         '-m', '--model-size',
         type=str,
         default='base',
@@ -302,6 +327,7 @@ def main() -> None:
     app = VideoSubtitleApp(
         video_path=args.video_path,
         output_dir=args.output_dir,
+        output_filename=args.output_name,
         model_size=args.model_size,
         subtitle_format=args.format
     )

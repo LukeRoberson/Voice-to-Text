@@ -15,6 +15,7 @@ __pycache__/
 subtitles/
 output/
 temp/
+*.csv
 
 # Model cache
 .cache/

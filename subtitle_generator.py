@@ -14,6 +14,7 @@ Classes:
 
 from typing import List, Dict, Optional
 from faster_whisper import WhisperModel
+from tqdm import tqdm
 import torch
 
 
@@ -214,8 +215,10 @@ class SubtitleGenerator:
             raise ValueError("Beam size must be between 1 and 10")
 
         print(f"🎤 Transcribing audio: {audio_path}")
-        print(f"   Language: {language}, Beam size: {beam_size}, "
-              f"VAD filter: {vad_filter}")
+        print(
+            f"   Language: {language}, Beam size: {beam_size}, "
+            f"VAD filter: {vad_filter}"
+        )
 
         # Get the model to begin transcription
         try:
@@ -233,12 +236,20 @@ class SubtitleGenerator:
 
             # Convert segments generator to list of dictionaries
             transcription_segments = []
-            for segment in segments:
-                transcription_segments.append({
-                    'start': segment.start,
-                    'end': segment.end,
-                    'text': segment.text.strip()
-                })
+
+            # Create progress bar without total (unknown segment count)
+            with tqdm(
+                desc='Transcribing',
+                unit=' segments',
+                dynamic_ncols=True
+            ) as pbar:
+                for segment in segments:
+                    transcription_segments.append({
+                        'start': segment.start,
+                        'end': segment.end,
+                        'text': segment.text.strip()
+                    })
+                    pbar.update(1)
 
             print(
                 f"✓ Transcription complete: "

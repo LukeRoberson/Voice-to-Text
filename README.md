@@ -17,6 +17,7 @@ A Python application that automatically generates subtitles from MP4 video files
 </br></br>
 
 
+---
 ## Requirements
 
 ### System Requirements
@@ -61,46 +62,64 @@ python validate_setup.py
 </br></br>
 
 
+---
 ## Usage
 
 ### Basic Usage
 
 Generate subtitles from a video file (uses default 'base' model):
 
-```powershell
+```bash
 python main.py path\to\your\video.mp4
 ```
+</br></br>
 
+> [!NOTE]
+> Only mp4 files are supported.
+> Files can be local, or a URL
+> If they are a URL, they will downloaded and cleaned up later.
 </br></br>
 
 
 ### Advanced Options
 
 **Specify model size** (larger = more accurate but slower):
-```powershell
+```bash
 python main.py video.mp4 -m medium
 ```
 </br></br>
 
 
 **Change output format to WebVTT**:
-```powershell
+```bash
 python main.py video.mp4 -f vtt
 ```
 </br></br>
 
 
 **Specify output directory**:
-```powershell
+```bash
 python main.py video.mp4 -o .\subtitles
 ```
 </br></br>
 
 
 **Combine options**:
-```powershell
+```bash
 python main.py video.mp4 -m large-v3 -f vtt -o .\output
 ```
+</br></br>
+
+
+**Batching with a CSV file**:
+```bash
+python main.py -c csv_file.csv
+```
+</br></br>
+
+> [!NOTE]
+> The CSV file requires a 'name' field (for the final filename) and a 'file' field (the mp4 file).
+> Other fields are ok, but will be ignored.
 </br></br>
 
 
@@ -130,6 +149,7 @@ python main.py video.mp4 -m large-v3 -f vtt -o .\output
 </br></br>
 
 
+---
 ## How It Works
 
 1. **Video Validation**: Checks that the video file exists and is valid
@@ -142,6 +162,7 @@ python main.py video.mp4 -m large-v3 -f vtt -o .\output
 </br></br>
 
 
+---
 ## Output
 
 The application generates subtitle files with the same name as your video:
@@ -151,6 +172,7 @@ The application generates subtitle files with the same name as your video:
 </br></br>
 
 
+---
 ## GPU Support
 
 The application automatically detects CUDA-capable GPUs. If a GPU is detected:
@@ -169,6 +191,7 @@ If no GPU is detected:
 </br></br>
 
 
+---
 ## Performance Tips
 
 1. **For fastest processing**: Use `tiny` or `base` model
@@ -180,6 +203,7 @@ If no GPU is detected:
 </br></br>
 
 
+---
 ## Project Structure
 
 ```
@@ -194,6 +218,7 @@ Voice to Text/
 </br></br>
 
 
+---
 ## License
 
 This project uses the faster-whisper implementation of OpenAI's Whisper model.
@@ -201,6 +226,7 @@ This project uses the faster-whisper implementation of OpenAI's Whisper model.
 </br></br>
 
 
+---
 ## Acknowledgments
 
 - OpenAI Whisper team for the amazing speech recognition model

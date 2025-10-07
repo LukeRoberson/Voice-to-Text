@@ -42,7 +42,10 @@ A Python application that automatically generates subtitles from MP4 video files
   - Optional - For better GPU support
   - https://pytorch.org/get-started/locally/
   - Try to get a version that matches your CUDA version
-  - For example: `pip3 install torch torchaudio --index-url https://download.pytorch.org/whl/cu128`
+  - For example: `pip3 install torch --index-url https://download.pytorch.org/whl/cu128`
+
+> [!NOTE]
+> Pytorch is only used for GPU detection
 
 </br></br>
 

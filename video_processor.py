@@ -2,7 +2,20 @@
 Video Processor Module
 
 This module provides functionality to extract audio from video files
-for subtitle generation.
+    for subtitle generation.
+
+Uses ffmpeg to handle audio extraction and conversion.
+    Supports mp4 video files.
+
+Classes:
+    VideoProcessor:
+        Class for processing video files and extracting audio
+
+Dependencies:
+    - os, pathlib
+        - For file and directory operations
+    - subprocess
+        - For running FFmpeg commands
 """
 
 from typing import Optional
@@ -25,12 +38,12 @@ class VideoProcessor:
     Methods:
         __init__:
             Initialize the VideoProcessor
+        _check_ffmpeg:
+            Check if FFmpeg is available in the system
         validate_video_file:
             Validate that the video file exists and is accessible
         extract_audio:
             Extract audio from video file
-        _check_ffmpeg:
-            Check if FFmpeg is available in the system
     """
 
     def __init__(
@@ -50,16 +63,44 @@ class VideoProcessor:
             None
         """
 
+        # The location of the video file
         self.video_path = video_path
-        
+
+        # Set output directory
         if output_dir is None:
             self.output_dir = str(Path(video_path).parent)
         else:
             self.output_dir = output_dir
             os.makedirs(output_dir, exist_ok=True)
-        
+
         print(f"📹 Video file: {video_path}")
         print(f"📁 Output directory: {self.output_dir}")
+
+    def _check_ffmpeg(
+        self
+    ) -> bool:
+        """
+        Check if FFmpeg is available locally or in the system PATH.
+
+        Returns:
+            bool: True if FFmpeg is available, False otherwise
+        """
+
+        # Test run ffmpeg
+        try:
+            subprocess.run(
+                ['ffmpeg', '-version'],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=True
+            )
+            return True
+
+        except (
+            subprocess.CalledProcessError,
+            FileNotFoundError
+        ):
+            return False
 
     def validate_video_file(
         self
@@ -67,18 +108,23 @@ class VideoProcessor:
         """
         Validate that the video file exists and is accessible.
 
+        Args:
+            None
+
         Returns:
             bool: True if valid, False otherwise
         """
 
+        # Check file existence
         if not os.path.exists(self.video_path):
             print(f"❌ Video file not found: {self.video_path}")
             return False
-        
+
+        # Check if it's a file
         if not os.path.isfile(self.video_path):
             print(f"❌ Path is not a file: {self.video_path}")
             return False
-        
+
         # Check file extension
         valid_extensions = ['.mp4', '.MP4']
         file_ext = Path(self.video_path).suffix
@@ -86,7 +132,7 @@ class VideoProcessor:
             print(f"❌ Invalid file extension: {file_ext}. "
                   f"Expected: {', '.join(valid_extensions)}")
             return False
-        
+
         print("✓ Video file validated successfully")
         return True
 
@@ -112,14 +158,13 @@ class VideoProcessor:
                 "FFmpeg not found. Please install FFmpeg and "
                 "add it to your system PATH."
             )
-        
+
         # Generate output audio filename
         video_name = Path(self.video_path).stem
         audio_filename = f"{video_name}_audio.{output_format}"
         audio_path = os.path.join(self.output_dir, audio_filename)
-        
         print(f"🎵 Extracting audio to: {audio_path}")
-        
+
         try:
             # FFmpeg command to extract audio
             codec = 'pcm_s16le' if output_format == 'wav' else 'libmp3lame'
@@ -133,7 +178,7 @@ class VideoProcessor:
                 '-y',  # Overwrite output file
                 audio_path
             ]
-            
+
             # Run FFmpeg with suppressed output
             subprocess.run(
                 command,
@@ -141,34 +186,16 @@ class VideoProcessor:
                 stderr=subprocess.PIPE,
                 check=True
             )
-            
+
             print("✓ Audio extracted successfully")
             return audio_path
-            
+
+        # Decoding problems
         except subprocess.CalledProcessError as e:
             print(f"❌ FFmpeg error: {e.stderr.decode()}")
             raise
+
+        # Generic exception
         except Exception as e:
             print(f"❌ Error extracting audio: {e}")
             raise
-
-    def _check_ffmpeg(
-        self
-    ) -> bool:
-        """
-        Check if FFmpeg is available in the system PATH.
-
-        Returns:
-            bool: True if FFmpeg is available, False otherwise
-        """
-
-        try:
-            subprocess.run(
-                ['ffmpeg', '-version'],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                check=True
-            )
-            return True
-        except (subprocess.CalledProcessError, FileNotFoundError):
-            return False

@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+.venv/
+
+# IDE
+.vscode/
+
+# Project specific
+*.mp4
+*.wav
+*.mp3
+*.srt
+*.vtt
+*.exe
+subtitles/
+output/
+temp/
+
+# Model cache
+.cache/
+models/

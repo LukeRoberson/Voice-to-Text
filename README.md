@@ -117,6 +117,12 @@ python main.py -c csv_file.csv
 ```
 </br></br>
 
+**Scan a directory for MP4 files**:
+```bash
+python main.py -d path\to\directory
+```
+</br></br>
+
 > [!NOTE]
 > The CSV file requires a 'name' field (for the final filename) and a 'file' field (the mp4 file).
 > Other fields are ok, but will be ignored.
@@ -131,6 +137,7 @@ python main.py -c csv_file.csv
 | `--output-dir` | `-o`  | Output directory for subtitle file | Same as video |
 | `--model-size` | `-m`  | Whisper model size                 | `base`        |
 | `--format`     | `-f`  | Subtitle format (srt or vtt)       | `srt`         |
+| `--find-mp4-dir` | `-d` | Search a directory for MP4 files and print the list before starting | None |
 
 </br></br>
 

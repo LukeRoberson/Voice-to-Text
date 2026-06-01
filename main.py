@@ -38,7 +38,7 @@ import argparse
 import os
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 import tempfile
 import requests
 from urllib.parse import urlparse
@@ -77,12 +77,13 @@ class VideoSubtitleApp:
 
     def __init__(
         self,
-        video_path: str,
+        video_path: Optional[str],
         output_dir: Optional[str] = None,
         output_filename: Optional[str] = None,
         model_size: str = "base",
         subtitle_format: str = "srt",
-        csv_file: Optional[str] = None
+        csv_file: Optional[str] = None,
+        find_mp4_dir: Optional[str] = None
     ) -> None:
         """
         Initialize the application with configuration parameters.
@@ -112,6 +113,7 @@ class VideoSubtitleApp:
         self.model_size = model_size
         self.subtitle_format = subtitle_format.lower()
         self.csv_file = csv_file
+        self.find_mp4_dir = find_mp4_dir
 
         # Validate subtitle format
         if self.subtitle_format not in ['srt', 'vtt']:
@@ -119,6 +121,32 @@ class VideoSubtitleApp:
                 f"Invalid subtitle format: {subtitle_format}. "
                 f"Must be 'srt' or 'vtt'"
             )
+
+    def _find_mp4_files(
+        self,
+        directory: str
+    ) -> List[str]:
+        """
+        Search a directory for MP4 files.
+
+        Args:
+            directory (str): Directory to scan for .mp4 files
+
+        Returns:
+            List[str]: Sorted list of MP4 file paths
+        """
+
+        path = Path(directory)
+        if not path.exists() or not path.is_dir():
+            print(f"❌ Directory not found or not a directory: {directory}")
+            return []
+
+        mp4_files = [
+            str(item)
+            for item in sorted(path.rglob("*"))
+            if item.is_file() and item.suffix.lower() == ".mp4"
+        ]
+        return mp4_files
 
     def _is_url(
         self,
@@ -275,6 +303,23 @@ class VideoSubtitleApp:
         print("=" * 60)
         print()
 
+        # Search for mp4 files in a directory if requested
+        mp4_files = None
+        if self.find_mp4_dir:
+            mp4_files = self._find_mp4_files(self.find_mp4_dir)
+            print("📁 Searching for MP4 files in directory:")
+            print(f"    {self.find_mp4_dir}")
+
+            if mp4_files:
+                print("✅ Found the following MP4 files:")
+                for mp4_file in mp4_files:
+                    print(f"  - {mp4_file}")
+            else:
+                print("❌ No MP4 files found in the specified directory.")
+                sys.exit(1)
+
+            print()
+
         # Handle a list of videos from CSV file
         if self.csv_file:
             print(f"📋 Processing batch from CSV file: {self.csv_file}")
@@ -292,6 +337,16 @@ class VideoSubtitleApp:
             except Exception as e:
                 print(f"❌ Failed to read CSV file: {e}")
                 sys.exit(1)
+
+        # If a directory was scanned and no CSV file is provided, process all found MP4s
+        elif mp4_files is not None:
+            videos = [
+                {
+                    'name': Path(video_path).stem,
+                    'file': video_path
+                }
+                for video_path in mp4_files
+            ]
 
         # Or, create a list of the one video to process
         else:
@@ -459,6 +514,7 @@ def main() -> None:
             python main.py video.mp4 -o ./subtitles -n my_video
             python main.py video.mp4 -m medium -f vtt
             python main.py video.mp4 -o ./subtitles -m large-v3
+            python main.py -d path/to/directory
 
             Model sizes:
             tiny    - Fastest, least accurate (~1GB VRAM)
@@ -525,12 +581,23 @@ def main() -> None:
         )
     )
 
+    parser.add_argument(
+        '-d', '--find-mp4-dir',
+        type=str,
+        default=None,
+        help=(
+            'Search the specified directory for MP4 files and print '
+            'the list before starting. If no video_path or csv-file '
+            'is provided, all found MP4s will be processed.'
+        )
+    )
+
     args = parser.parse_args()
 
     # Validate that either video_path or csv_file is provided
-    if not args.video_path and not args.csv_file:
+    if not args.video_path and not args.csv_file and not args.find_mp4_dir:
         parser.error(
-            "Either video_path or --csv-file must be provided"
+            "Either video_path, --csv-file, or --find-mp4-dir must be provided"
         )
 
     # Create and run the application
@@ -540,7 +607,8 @@ def main() -> None:
         output_filename=args.output_name,
         model_size=args.model_size,
         subtitle_format=args.format,
-        csv_file=args.csv_file
+        csv_file=args.csv_file,
+        find_mp4_dir=args.find_mp4_dir
     )
 
     # Run the app
